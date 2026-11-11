@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #fffaf0;
+  --ink: #202a25;
+  --muted: #66736b;
+  --line: #e6ddcd;
+  --green: #17684f;
+  --green-light: #e3f1e7;
+  --coral: #ce503d;
+  --gold: #edbd3c;
+  --blue: #387c91;
+  --pink: #f7e1d7;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body { margin: 0; color: var(--ink); background: var(--paper); font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif; }
+button, input, textarea, select { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+a { color: inherit; }
+.serif { font-family: Georgia, "Times New Roman", serif; }
+.page-shell { width: min(1120px, calc(100% - 36px)); margin-inline: auto; }
+.field { width: 100%; border: 1px solid var(--line); background: #fffefa; border-radius: 5px; padding: 12px 14px; color: var(--ink); outline: none; transition: border-color .18s, box-shadow .18s, background .18s; }
+.field:focus { border-color: var(--green); background: #fff; box-shadow: 0 0 0 3px rgb(23 104 79 / 15%); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--green); }
+.button { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--green); border-radius: 5px; padding: 10px 17px; background: var(--green); color: white; font-weight: 700; text-decoration: none; cursor: pointer; box-shadow: 0 3px 0 #104b39; transition: background .16s, transform .16s, box-shadow .16s; }
+.button:hover { background: #0e593f; transform: translateY(-1px); box-shadow: 0 4px 0 #104b39; }
+.button:active { transform: translateY(2px); box-shadow: 0 1px 0 #104b39; }
+.button:focus-visible, a:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.button:disabled { cursor: not-allowed; opacity: .62; transform: none; box-shadow: none; }
+.button-secondary { border-color: var(--line); color: var(--ink); background: #fffdf8; box-shadow: 0 3px 0 #e4dccd; }
+.button-secondary:hover { border-color: #c7bca9; background: white; box-shadow: 0 4px 0 #e4dccd; }
+.button-secondary:active { box-shadow: 0 1px 0 #e4dccd; }
+.button-danger { border-color: #a53d2b; background: #a53d2b; box-shadow: 0 3px 0 #7e2e21; }
+.button-danger:hover { background: #903421; }
+.eyebrow { color: var(--green); font-size: 11px; font-weight: 750; text-transform: uppercase; }
+.spinner { width: 13px; height: 13px; border: 2px solid rgb(255 255 255 / 45%); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
+.fade-in { animation: rise .38s ease-out both; }
+.hero-panel { background-color: #f1d164; background-image: repeating-linear-gradient(135deg, transparent 0 18px, rgb(255 255 255 / 13%) 18px 19px); }
+.segment-control { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; border: 1px solid #e8dfd1; border-radius: 7px; padding: 5px; background: #f4eee2; }
+.segment-option { min-height: 42px; border: 0; border-radius: 4px; padding: 9px 12px; color: var(--muted); background: transparent; font-weight: 650; cursor: pointer; transition: color .18s, background .18s, transform .18s, box-shadow .18s; }
+.segment-option:hover { color: var(--ink); }
+.segment-option:active { transform: scale(.97); }
+.segment-option[aria-pressed="true"] { color: white; background: var(--coral); box-shadow: 0 2px 0 #a73d2d; }
+.empty-state { position: relative; overflow: hidden; border: 1px dashed #cbbd9e; border-radius: 7px; background: #fff4d8; padding: 28px; }
+.empty-state::after { position: absolute; right: 18px; top: -34px; color: rgb(206 80 61 / 12%); content: "✳"; font-size: 150px; line-height: 1; pointer-events: none; }
+.empty-state > * { position: relative; z-index: 1; }
+.status-success { border: 1px solid #b8d7bf; border-radius: 5px; background: var(--green-light); padding: 11px 13px; color: var(--green); }
+.status-error { border: 1px solid #e8c1b6; border-radius: 5px; background: #fff0e9; padding: 11px 13px; color: #a53d2b; }
+@media (max-width: 520px) {
+  .page-shell { width: min(100% - 28px, 1120px); }
+  .empty-state { padding: 22px 18px; }
+  .nav-container { flex-wrap: wrap; gap: 8px; padding-block: 10px; }
+  .nav-container nav { width: 100%; justify-content: space-between; }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
