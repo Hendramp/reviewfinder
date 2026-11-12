@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { canonicalKey, normalizeAirbnbUrl, normalizeAddress } from "@/lib/normalize";
+import { listingUrl, normalizeAddress } from "@/lib/normalize";
 import { createClient } from "@/lib/supabase/server";
 import type { SubjectKind } from "@/lib/types";
 
@@ -20,38 +20,57 @@ export async function searchSubjects(query: string) {
   return [...new Map([...(byName.data ?? []), ...(byCity.data ?? [])].map((subject) => [subject.id, subject])).values()];
 }
 
-export async function identifySubject(input: { kind: SubjectKind; name: string; address: string; city: string }) {
+export async function identifySubject(input: {
+  kind: SubjectKind;
+  name: string;
+  address: string;
+  sourceUrl: string;
+  placeType: "whole" | "private" | "shared" | "";
+  priceTier: number | null;
+  createNew?: boolean;
+}) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Sign in before starting a review." };
 
-  const airbnbKey = normalizeAirbnbUrl(input.name);
-  const kind: SubjectKind = airbnbKey ? "stay" : input.kind;
-  const key = canonicalKey(kind, input.name, input.address);
-  if (!key) return { error: kind === "stay" ? "Enter a valid Airbnb listing link." : "Add a name and address." };
+  const name = input.name.trim();
+  const address = input.address.trim();
+  const sourceUrl = listingUrl(input.sourceUrl);
+  const nameKey = normalizeAddress(name);
+  const addressKey = normalizeAddress(address);
+  if (!name || !address || !sourceUrl || !nameKey || !addressKey) return { error: "Enter a name, street address, and valid listing URL." };
+  if (!["whole", "private", "shared"].includes(input.placeType) || (input.kind === "lease" && input.placeType === "shared")) return { error: "Choose a valid place type for this category." };
+  if (input.priceTier === null || !Number.isInteger(input.priceTier) || input.priceTier < 1 || input.priceTier > 4) return { error: "Choose a price tier from 1 to 4." };
 
-  const { data: exact, error: lookupError } = await supabase.from("subjects").select("*").eq("kind", kind).eq("canonical_key", key).maybeSingle();
-  if (lookupError) return { error: lookupError.message };
-  if (exact) return { subject: exact, exact: true };
+  const { data: exact, error: exactError } = await supabase.from("subjects").select("*")
+    .eq("kind", input.kind).eq("name_key", nameKey).eq("address_key", addressKey).limit(5);
+  if (exactError) return { error: exactError.message };
+  const namePattern = `%${name.replace(/[%_,]/g, " ")}%`;
+  const addressPattern = `%${address.replace(/[%_,]/g, " ")}%`;
+  const { data: partial, error: partialError } = await supabase.from("subjects").select("*")
+    .eq("kind", input.kind).ilike("display_name", namePattern).ilike("address", addressPattern).limit(10);
+  if (partialError) return { error: partialError.message };
+  const candidates = [...new Map([...(exact ?? []), ...(partial ?? [])].map((subject) => [subject.id, subject])).values()];
+  if (candidates.length && !input.createNew) return { candidates };
 
-  if (kind !== "stay") {
-    const { data: candidates } = await supabase.from("subjects").select("*").eq("kind", kind).ilike("display_name", `%${input.name.trim().replace(/[%_]/g, " ")}%`).limit(5);
-    const close = candidates?.find((candidate) => normalizeAddress(candidate.display_name) === normalizeAddress(input.name) || (input.city && candidate.city?.toLowerCase() === input.city.toLowerCase()));
-    if (close) return { candidate: close };
-  }
-
-  const sourceUrl = airbnbKey ? `https://${airbnbKey}` : null;
   const { data: created, error } = await supabase.from("subjects").insert({
-    kind,
-    canonical_key: key,
-    display_name: airbnbKey ? `Airbnb stay ${airbnbKey.split("/").at(-1)}` : input.name.trim(),
+    kind: input.kind,
+    display_name: name,
     source_url: sourceUrl,
-    address: input.address.trim() || null,
-    city: input.city.trim() || null,
+    address,
+    place_type: input.placeType || null,
+    price_tier: input.priceTier,
     created_by: user.id,
   }).select("*").single();
-  if (error) return { error: error.message };
-  return { subject: created, exact: true };
+  if (error) {
+    if (error.code === "23505") {
+      const { data: existing } = await supabase.from("subjects").select("id,display_name,address")
+        .eq("kind", input.kind).eq("name_key", nameKey).eq("address_key", addressKey).maybeSingle();
+      return existing ? { duplicate: existing } : { error: "This place already exists, but its page could not be found. Try searching for it by name." };
+    }
+    return { error: error.message };
+  }
+  return { subject: created };
 }
 
 export async function getTags(kind: SubjectKind) {
@@ -60,15 +79,14 @@ export async function getTags(kind: SubjectKind) {
   return { tags: data ?? [], error: error?.message ?? null };
 }
 
-export async function updateSubjectDetails(input: { subjectId: string; kind: SubjectKind; hostName: string; hostUsername: string; city: string; placeType: "whole" | "private" | "shared" | ""; priceTier: number | null }) {
+export async function updateSubjectDetails(input: { subjectId: string; kind: SubjectKind; hostName: string; hostUsername: string }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Sign in to continue." };
+  if (input.kind !== "stay") return { error: null };
   const details = input.kind === "stay"
-    ? { host_name: input.hostName || null, host_username: input.hostUsername || null, city: input.city || null, place_type: input.placeType || null }
-    : input.kind === "hotel"
-      ? { city: input.city || null, price_tier: input.priceTier }
-      : { city: input.city || null };
+    ? { host_name: input.hostName || null, host_username: input.hostUsername || null }
+    : {};
   const { error } = await supabase.from("subjects").update(details).eq("id", input.subjectId);
   return { error: error?.message ?? null };
 }
@@ -81,6 +99,7 @@ export async function saveReview(input: {
   visitDate: string;
   stayStart: string;
   stayEnd: string;
+  leaseMonths: number | null;
   selectedTags: (SelectedTag | { label: string; note: string })[];
   kind: SubjectKind;
 }) {
@@ -89,6 +108,7 @@ export async function saveReview(input: {
   if (!user) return { error: "Sign in to publish your review." };
   if (!Number.isInteger(input.rating) || input.rating < 0 || input.rating > 5) return { error: "Choose a rating from 0 to 5." };
   if (input.rating === 0 && input.body.trim().length < 10) return { error: "A zero-star review needs at least 10 characters." };
+  if (input.kind === "lease" && (!Number.isInteger(input.leaseMonths) || input.leaseMonths! < 1 || input.leaseMonths! > 120)) return { error: "Enter a lease length from 1 to 120 months." };
 
   const resolvedTags: SelectedTag[] = [];
   for (const tag of input.selectedTags) {
@@ -110,6 +130,7 @@ export async function saveReview(input: {
     visit_date: input.visitDate || null,
     stay_start: input.stayStart || null,
     stay_end: input.stayEnd || null,
+    lease_months: input.kind === "lease" ? input.leaseMonths : null,
     status: "published" as const,
     updated_at: new Date().toISOString(),
   };

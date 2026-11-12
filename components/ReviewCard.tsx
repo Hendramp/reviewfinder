@@ -10,9 +10,10 @@ export default function ReviewCard({ review, subject, photos, tags = [], tagNote
   return <article className="border-b border-[var(--line)] py-6 last:border-0">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-3"><StarRating value={review.rating} /><span className="text-xs text-[var(--muted)]">{formatDate(review.visit_date ?? review.created_at)}</span></div>
-      {review.rating === 0 && <span className="rounded-sm bg-[#f7e8e2] px-2 py-1 text-[10px] font-bold uppercase text-[var(--coral)]">0 stars</span>}
+      {review.rating === 0 && <span className="rounded-sm bg-[var(--accent-soft)] px-2 py-1 text-[10px] font-bold uppercase text-[var(--danger)]">0 stars</span>}
     </div>
     {subject && <Link href={`/s/${subject.id}`} className="mt-2 inline-block text-sm font-semibold text-[var(--green)]">{subject.display_name}</Link>}
+    {subject?.kind === "lease" && review.lease_months !== null && <p className="mt-1 text-xs text-[var(--muted)]">{review.lease_months}-month lease</p>}
     {body && <p className="my-3 whitespace-pre-wrap text-[15px] leading-7">{body}</p>}
     {tags.length > 0 && <div className="mb-3 flex flex-wrap gap-2">{tags.map((tag) => <span key={tag} className="rounded-full bg-[var(--green-light)] px-2.5 py-1 text-xs text-[var(--green)]">{tag}</span>)}</div>}
     {tagNotes.map((tag) => tag.note && <p key={`${tag.label}-${tag.note}`} className="-mt-2 mb-2 text-xs italic text-[var(--muted)]">{tag.label}: {tag.note}</p>)}

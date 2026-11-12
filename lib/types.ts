@@ -1,4 +1,4 @@
-export type SubjectKind = "stay" | "restaurant" | "bar" | "hotel";
+export type SubjectKind = "stay" | "hotel" | "lease";
 export type ReviewStatus = "published" | "hidden" | "removed";
 export type MediaKind = "photo" | "video";
 export type MediaStatus = "ready" | "rejected";
@@ -14,9 +14,10 @@ export type ReportStatus = "open" | "actioned" | "dismissed";
 export interface Subject extends Record<string, unknown> {
   id: string;
   kind: SubjectKind;
-  canonical_key: string;
+  name_key: string;
+  address_key: string;
   display_name: string;
-  source_url: string | null;
+  source_url: string;
   host_name: string | null;
   host_username: string | null;
   address: string | null;
@@ -41,6 +42,7 @@ export interface Review extends Record<string, unknown> {
   visit_date: string | null;
   stay_start: string | null;
   stay_end: string | null;
+  lease_months: number | null;
   verified_stay: boolean | null;
   status: ReviewStatus;
   created_at: string;
@@ -102,7 +104,7 @@ export interface SubjectStats extends Record<string, unknown> {
 export interface Database {
   public: {
     Tables: {
-      subjects: { Row: Subject; Insert: Record<string, unknown> & Partial<Subject> & Pick<Subject, "kind" | "canonical_key" | "display_name">; Update: Record<string, unknown> & Partial<Subject>; Relationships: [] };
+      subjects: { Row: Subject; Insert: Record<string, unknown> & Partial<Subject> & Pick<Subject, "kind" | "display_name" | "address" | "source_url">; Update: Record<string, unknown> & Partial<Subject>; Relationships: [] };
       reviews: { Row: Review; Insert: Record<string, unknown> & Partial<Review> & Pick<Review, "subject_id" | "user_id" | "rating">; Update: Record<string, unknown> & Partial<Review>; Relationships: [] };
       tags: { Row: Tag; Insert: Record<string, unknown> & Partial<Tag> & Pick<Tag, "kind" | "label" | "slug">; Update: Record<string, unknown> & Partial<Tag>; Relationships: [] };
       review_tags: { Row: ReviewTag; Insert: Record<string, unknown> & ReviewTag; Update: Record<string, unknown> & Partial<ReviewTag>; Relationships: [] };

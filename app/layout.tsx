@@ -3,8 +3,10 @@ import "./globals.css";
 import Nav from "@/components/Nav";
 
 export const metadata: Metadata = {
-  title: "ReviewFinder — the details that matter",
-  description: "Honest reviews for stays, restaurants, bars, and hotels.",
+  title: { default: "Unfilteredpillowtalk — real reviews with photo proof", template: "%s | Unfilteredpillowtalk" },
+  description: "Real reviews with photo proof for stays, hotels, and leases.",
+  applicationName: "Unfilteredpillowtalk",
+  keywords: ["Unfilteredpillowtalk", "stays", "hotels", "leases", "real reviews", "photo proof"],
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
