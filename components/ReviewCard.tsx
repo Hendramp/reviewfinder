@@ -7,7 +7,7 @@ import type { Media, Review, Subject } from "@/lib/types";
 
 export default function ReviewCard({ review, subject, photos, tags = [], tagNotes = [], bodyLimit }: { review: Review; subject?: Subject; photos: Media[]; tags?: string[]; tagNotes?: { label: string; note: string }[]; bodyLimit?: number }) {
   const body = review.body && bodyLimit && review.body.length > bodyLimit ? `${review.body.slice(0, bodyLimit).trimEnd()}…` : review.body;
-  return <article id={`review-${review.id}`} className="border-b border-[var(--line)] py-6 last:border-0">
+  return <article id={`review-${review.id}`} className="review-card">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-3"><StarRating value={review.rating} /><span className="text-xs text-[var(--muted)]">{formatDate(review.visit_date ?? review.created_at)}</span></div>
       {review.rating === 0 && <span className="rounded-sm bg-[var(--accent-soft)] px-2 py-1 text-[10px] font-bold uppercase text-[var(--danger)]">0 stars</span>}
