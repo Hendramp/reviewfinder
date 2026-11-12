@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { listingUrl, normalizeAddress } from "@/lib/normalize";
 import { createClient } from "@/lib/supabase/server";
-import type { SubjectKind } from "@/lib/types";
+import { isUsernameUniqueViolation, USERNAME_PATTERN } from "@/lib/username";
+import type { ReportReason, SubjectKind } from "@/lib/types";
 
 export type SelectedTag = { id: number; note: string };
 
@@ -77,6 +78,52 @@ export async function getTags(kind: SubjectKind) {
   const supabase = await createClient();
   const { data, error } = await supabase.from("tags").select("*").eq("kind", kind).order("label");
   return { tags: data ?? [], error: error?.message ?? null };
+}
+
+export async function saveProfileUsername(username: string) {
+  const normalizedUsername = username.trim();
+  if (!USERNAME_PATTERN.test(normalizedUsername)) return { error: "Use 3–24 lowercase letters, numbers, or underscores." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in to choose a username." };
+
+  const { data: profile, error: profileError } = await supabase.from("profiles")
+    .select("id").eq("id", user.id).maybeSingle();
+  if (profileError) return { error: "Could not save your username. Please try again." };
+  const profileValues = { username: normalizedUsername, updated_at: new Date().toISOString() };
+  const { data, error } = profile
+    ? await supabase.from("profiles").update(profileValues).eq("id", user.id).select("id,username").maybeSingle()
+    : await supabase.from("profiles").insert({ id: user.id, ...profileValues, display_name: normalizedUsername }).select("id,username").maybeSingle();
+  if (error) {
+    if (isUsernameUniqueViolation(error)) return { error: "That username was just taken — try another." };
+    return { error: "Could not save your username. Please try again." };
+  }
+  if (!data) return { error: "Could not save your username. Please try again." };
+
+  revalidatePath("/profile");
+  return { username: data.username };
+}
+
+export async function submitReviewReport(input: { reviewId: string; reason: ReportReason; note: string }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in to report this review." };
+  if (!["spam", "harassment", "not_a_real_review", "wrong_place", "other"].includes(input.reason)) {
+    return { error: "Choose a valid report reason." };
+  }
+  if (input.note.trim().length > 1000) return { error: "The note must be 1,000 characters or fewer." };
+
+  const { error } = await supabase.from("reports").insert({
+    review_id: input.reviewId,
+    reporter_id: user.id,
+    reason: input.reason,
+    note: input.note.trim() || null,
+    status: "open",
+  });
+  if (error) return { error: "Could not submit your report. Please try again." };
+  revalidatePath("/admin");
+  return { error: null };
 }
 
 export async function updateSubjectDetails(input: { subjectId: string; kind: SubjectKind; hostName: string; hostUsername: string }) {

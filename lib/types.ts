@@ -3,13 +3,16 @@ export type ReviewStatus = "published" | "hidden" | "removed";
 export type MediaKind = "photo" | "video";
 export type MediaStatus = "ready" | "rejected";
 export type ReportReason =
+  | "not_a_real_review"
+  | "wrong_place"
+  | "other"
   | "harassment"
   | "hate_speech"
   | "doxxing"
   | "spam"
   | "illegal_content"
   | "accuses_named_person_of_crime";
-export type ReportStatus = "open" | "actioned" | "dismissed";
+export type ReportStatus = "open" | "resolved" | "dismissed";
 
 export interface Subject extends Record<string, unknown> {
   id: string;
@@ -31,6 +34,16 @@ export interface Subject extends Record<string, unknown> {
   hours: Record<string, unknown> | null;
   created_by: string | null;
   created_at: string;
+}
+
+export interface Profile extends Record<string, unknown> {
+  id: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  is_admin: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Review extends Record<string, unknown> {
@@ -80,12 +93,14 @@ export interface Media extends Record<string, unknown> {
 export interface Report extends Record<string, unknown> {
   id: string;
   review_id: string | null;
-  media_id: string | null;
+  photo_id: string | null;
   reporter_id: string;
   reason: ReportReason;
   note: string | null;
   status: ReportStatus;
   created_at: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
 }
 
 export interface SubjectStats extends Record<string, unknown> {
@@ -104,6 +119,7 @@ export interface SubjectStats extends Record<string, unknown> {
 export interface Database {
   public: {
     Tables: {
+      profiles: { Row: Profile; Insert: Record<string, unknown> & Partial<Profile> & Pick<Profile, "id">; Update: Record<string, unknown> & Partial<Profile>; Relationships: [] };
       subjects: { Row: Subject; Insert: Record<string, unknown> & Partial<Subject> & Pick<Subject, "kind" | "display_name" | "address" | "source_url">; Update: Record<string, unknown> & Partial<Subject>; Relationships: [] };
       reviews: { Row: Review; Insert: Record<string, unknown> & Partial<Review> & Pick<Review, "subject_id" | "user_id" | "rating">; Update: Record<string, unknown> & Partial<Review>; Relationships: [] };
       tags: { Row: Tag; Insert: Record<string, unknown> & Partial<Tag> & Pick<Tag, "kind" | "label" | "slug">; Update: Record<string, unknown> & Partial<Tag>; Relationships: [] };
@@ -112,7 +128,10 @@ export interface Database {
       reports: { Row: Report; Insert: Record<string, unknown> & Partial<Report> & Pick<Report, "reporter_id" | "reason">; Update: Record<string, unknown> & Partial<Report>; Relationships: [] };
     };
     Views: { subject_stats: { Row: SubjectStats; Relationships: [] } };
-    Functions: Record<string, never>;
+    Functions: {
+      email_for_login: { Args: { login: string }; Returns: string | null };
+      is_admin: { Args: Record<string, never>; Returns: boolean };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

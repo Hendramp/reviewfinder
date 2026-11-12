@@ -64,7 +64,7 @@ export default async function Home({ searchParams }: { searchParams: Params }) {
         </aside>
       </div>
     </section>
-    <section className="py-9 sm:py-12"><div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p className="eyebrow">Start with the kind of place</p><h2 className="serif mt-1 text-3xl">Find your next stay.</h2></div><span className="text-xs font-medium text-[var(--muted)]">Live community review counts</span></div>
+    <section className="py-9 sm:py-12"><div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p className="eyebrow">Start with the kind of place</p><h2 className="serif mt-1 text-3xl">Find your kind of place.</h2></div><span className="text-xs font-medium text-[var(--muted)]">Live community review counts</span></div>
       <div className="grid gap-3 sm:grid-cols-3">{categories.map((category, index) => <Link key={category.kind} href={`/browse?category=${category.slug}`} className={`category-card group min-w-0 rounded-xl border p-5 no-underline transition-all ${index === 0 ? "category-card-primary" : ""}`}><div className="flex items-center justify-between"><span className="category-index">0{index + 1}</span><span className="category-arrow" aria-hidden="true">↗</span></div><p className="serif mt-5 text-2xl">{category.label}</p><p className="mt-1 min-h-10 text-sm leading-5 text-[var(--muted)]">{category.description}</p><p className="mt-5 border-t border-[var(--border)] pt-3"><strong className="serif text-2xl">{reviewCounts.get(category.kind) ?? 0}</strong><span className="ml-2 text-xs text-[var(--muted)]">community reviews</span></p></Link>)}</div>
     </section>
     <section id="search" className="scroll-mt-6 py-6">
