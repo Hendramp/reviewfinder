@@ -1,5 +1,7 @@
 alter table public.subjects
   alter column source_url drop not null,
+  alter column address drop not null,
+  alter column address_key drop not null,
   alter column place_type drop not null,
   alter column price_tier drop not null;
 

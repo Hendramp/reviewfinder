@@ -3,20 +3,9 @@ import { notFound } from "next/navigation";
 import DistributionBar from "@/components/DistributionBar";
 import ReviewCard from "@/components/ReviewCard";
 import TagChip from "@/components/TagChip";
+import { listingPlatform } from "@/lib/normalize";
 import { createClient } from "@/lib/supabase/server";
 import type { Media, Review, ReviewTag, Subject, SubjectStats, Tag } from "@/lib/types";
-
-function listingLabel(sourceUrl: string) {
-  try {
-    const domain = new URL(sourceUrl).hostname.toLowerCase().replace(/^www\./, "");
-    if (domain === "airbnb.com" || domain.endsWith(".airbnb.com")) return "Airbnb";
-    if (domain === "vrbo.com" || domain.endsWith(".vrbo.com")) return "Vrbo";
-    if (domain === "furnishedfinder.com" || domain.endsWith(".furnishedfinder.com")) return "Furnished Finder";
-    return domain;
-  } catch {
-    return "listing";
-  }
-}
 
 export default async function SubjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -47,7 +36,7 @@ export default async function SubjectPage({ params }: { params: Promise<{ id: st
   const kindLabel = subject.kind === "stay" ? "Stay" : subject.kind === "hotel" ? "Hotel" : "Lease";
 
   return <div className="page-shell pb-16">
-    <header className="border-b border-[var(--line)] py-9"><div className="flex flex-wrap items-start justify-between gap-5"><div className="min-w-0"><p className="eyebrow">{kindLabel}</p><h1 className="serif mt-2 break-words text-4xl sm:text-5xl">{subject.display_name}</h1><p className="mt-3 break-words text-sm text-[var(--muted)]">{[subject.address, subject.city, subject.region].filter(Boolean).join(" · ")}</p>{subject.kind === "stay" && subject.host_name && <p className="mt-2 text-sm">Hosted by {subject.host_name}</p>}</div><div className="flex min-w-0 flex-col items-start gap-2 sm:items-end">{subject.kind === "stay" && subject.source_url && <><a aria-label={`View original listing on ${listingLabel(subject.source_url)}`} className="min-h-11 content-center break-all text-sm font-semibold text-[var(--accent)] underline underline-offset-4" href={subject.source_url} target="_blank" rel="noopener noreferrer">View original listing ↗</a><span className="text-xs text-[var(--muted)]">{listingLabel(subject.source_url)}</span></>}<Link className="button" href={`/write?subject=${subject.id}`}>Write a review</Link></div></div></header>
+    <header className="border-b border-[var(--line)] py-9"><div className="flex flex-wrap items-start justify-between gap-5"><div className="min-w-0"><p className="eyebrow">{kindLabel}</p><h1 className="serif mt-2 break-words text-4xl sm:text-5xl">{subject.display_name}</h1><p className="mt-3 break-words text-sm text-[var(--muted)]">{[subject.address, subject.city, subject.region].filter(Boolean).join(" · ")}</p>{subject.kind === "stay" && subject.host_name && <p className="mt-2 text-sm">Hosted by {subject.host_name}</p>}</div><div className="flex min-w-0 flex-col items-start gap-2 sm:items-end">{subject.kind === "stay" && subject.source_url && <><a aria-label={`View original listing on ${listingPlatform(subject.source_url)}`} className="min-h-11 content-center break-all text-sm font-semibold text-[var(--accent)] underline underline-offset-4" href={subject.source_url} target="_blank" rel="noopener noreferrer">View original listing ↗</a><span className="text-xs text-[var(--muted)]">{listingPlatform(subject.source_url)}</span></>}<Link className="button" href={`/write?subject=${subject.id}`}>Write a review</Link></div></div></header>
     <section className="grid gap-8 border-b border-[var(--line)] py-7 sm:grid-cols-[1fr_2fr]">
       <div><p className="eyebrow">Community rating</p><div className="mt-1 flex items-baseline gap-2"><span className="serif text-5xl">{ratingStats.avg_rating === null ? "—" : Number(ratingStats.avg_rating).toFixed(1)}</span><span className="text-sm text-[var(--muted)]">/ 5</span></div><p className="mt-1 text-xs text-[var(--muted)]">0-5 scale · {ratingStats.review_count} reviews</p></div>
       <div className="self-center"><DistributionBar stats={ratingStats} /></div>

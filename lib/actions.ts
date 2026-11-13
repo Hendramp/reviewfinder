@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { listingUrl, normalizeAddress } from "@/lib/normalize";
+import { listingPlatform, listingUrl, normalizeAddress } from "@/lib/normalize";
 import { createClient } from "@/lib/supabase/server";
 import { isUsernameUniqueViolation, USERNAME_PATTERN } from "@/lib/username";
-import type { ReportReason, SubjectKind } from "@/lib/types";
+import type { ReportReason, Subject, SubjectKind } from "@/lib/types";
 
 export type SelectedTag = { id: number; note: string };
 
@@ -36,37 +36,56 @@ export async function identifySubject(input: {
   const name = input.name.trim();
   const address = input.address.trim();
   const sourceUrl = input.kind === "stay" ? listingUrl(input.sourceUrl) : null;
-  const nameKey = normalizeAddress(name);
-  const addressKey = normalizeAddress(address);
-  if (!name || !address || !nameKey || !addressKey) return { error: "Enter a name and street address." };
   if (input.kind === "stay" && !sourceUrl) return { error: "Enter a valid listing URL for this stay." };
+  if (input.kind !== "stay" && (!name || !address)) return { error: "Enter a name and street address." };
   if (input.kind === "stay" && input.placeType && !["whole", "private", "shared"].includes(input.placeType)) return { error: "Choose a valid place type." };
+  const displayName = name || (sourceUrl ? `${listingPlatform(sourceUrl)} stay` : "");
 
-  const { data: exact, error: exactError } = await supabase.from("subjects").select("*")
-    .eq("kind", input.kind).eq("name_key", nameKey).eq("address_key", addressKey).limit(5);
-  if (exactError) return { error: exactError.message };
-  const namePattern = `%${name.replace(/[%_,]/g, " ")}%`;
-  const addressPattern = `%${address.replace(/[%_,]/g, " ")}%`;
-  const { data: partial, error: partialError } = await supabase.from("subjects").select("*")
-    .eq("kind", input.kind).ilike("display_name", namePattern).ilike("address", addressPattern).limit(10);
-  if (partialError) return { error: partialError.message };
-  const candidates = [...new Map([...(exact ?? []), ...(partial ?? [])].map((subject) => [subject.id, subject])).values()];
-  if (candidates.length && !input.createNew) return { candidates };
+  let candidates: Subject[] = [];
+  if (input.kind === "stay") {
+    if (!sourceUrl) return { error: "Enter a valid listing URL for this stay." };
+    const { data, error } = await supabase.from("subjects").select("*")
+      .eq("kind", "stay").eq("source_url", sourceUrl).limit(5);
+    if (error) return { error: error.message };
+    candidates = data ?? [];
+  } else {
+    const nameKey = normalizeAddress(name);
+    const addressKey = normalizeAddress(address);
+    const { data: exact, error: exactError } = await supabase.from("subjects").select("*")
+      .eq("kind", input.kind).eq("name_key", nameKey).eq("address_key", addressKey).limit(5);
+    if (exactError) return { error: exactError.message };
+    const namePattern = `%${name.replace(/[%_,]/g, " ")}%`;
+    const addressPattern = `%${address.replace(/[%_,]/g, " ")}%`;
+    const { data: partial, error: partialError } = await supabase.from("subjects").select("*")
+      .eq("kind", input.kind).ilike("display_name", namePattern).ilike("address", addressPattern).limit(10);
+    if (partialError) return { error: partialError.message };
+    candidates = [...new Map([...(exact ?? []), ...(partial ?? [])].map((subject) => [subject.id, subject])).values()];
+  }
+  if (candidates.length && (input.kind === "stay" || !input.createNew)) return { candidates };
 
   const { data: created, error } = await supabase.from("subjects").insert({
     kind: input.kind,
-    display_name: name,
+    display_name: displayName,
     source_url: sourceUrl,
-    address,
+    address: address || null,
     place_type: input.kind === "stay" ? input.placeType || null : null,
     price_tier: null,
     created_by: user.id,
   }).select("*").single();
   if (error) {
     if (error.code === "23505") {
-      const { data: existing } = await supabase.from("subjects").select("id,display_name,address")
-        .eq("kind", input.kind).eq("name_key", nameKey).eq("address_key", addressKey).maybeSingle();
-      return existing ? { duplicate: existing } : { error: "This place already exists, but its page could not be found. Try searching for it by name." };
+      let existing: { id: string; display_name: string; address: string | null } | null = null;
+      if (input.kind === "stay") {
+        if (!sourceUrl) return { error: "Enter a valid listing URL for this stay." };
+        const { data } = await supabase.from("subjects").select("id,display_name,address")
+          .eq("kind", "stay").eq("source_url", sourceUrl).limit(1).maybeSingle();
+        existing = data;
+      } else {
+        const { data } = await supabase.from("subjects").select("id,display_name,address")
+          .eq("kind", input.kind).eq("name_key", normalizeAddress(name)).eq("address_key", normalizeAddress(address)).maybeSingle();
+        existing = data;
+      }
+      return existing ? { duplicate: existing } : { error: "This place already exists, but its page could not be found. Try searching by name or listing URL." };
     }
     return { error: error.message };
   }

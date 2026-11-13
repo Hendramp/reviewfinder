@@ -18,7 +18,7 @@ export interface Subject extends Record<string, unknown> {
   id: string;
   kind: SubjectKind;
   name_key: string;
-  address_key: string;
+  address_key: string | null;
   display_name: string;
   source_url: string | null;
   host_name: string | null;
