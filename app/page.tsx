@@ -50,7 +50,7 @@ export default async function Home({ searchParams }: { searchParams: Params }) {
       <div className="hero-layout">
         <div className="hero-copy fade-in"><p className="hero-kicker"><span aria-hidden="true" />Real places. Real experiences.</p><h1 className="serif mt-4 max-w-2xl text-4xl leading-[1.03] sm:text-6xl">Pillow talk,<br /><em>unfiltered.</em></h1><p className="mt-5 max-w-xl text-base leading-7 text-[var(--muted)]">Honest reviews from people who were really there, with photos to show what a stay, hotel, or lease was actually like.</p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row"><Link href="/write" className="button">Write a review <span aria-hidden="true">↗</span></Link><Link href="/browse?category=stays" className="button button-secondary">Browse stays</Link></div>
-          <div className="hero-signals mt-7"><span><strong>01</strong> Original listing links</span><span><strong>02</strong> Reviewer photos</span><span><strong>03</strong> The full 0–5 scale</span></div>
+          <div className="hero-signals mt-7"><span><strong>01</strong> Original listing links</span><span><strong>02</strong> Reviewer photos</span><span><strong>03</strong> The full 0–5 star scale</span></div>
         </div>
         <aside className="hero-proof-card fade-in" aria-label="What makes a useful review">
           <div className="flex items-center justify-between gap-3"><span className="eyebrow">The useful details</span><span className="hero-card-mark" aria-hidden="true">U</span></div>

@@ -27,7 +27,6 @@ export async function identifySubject(input: {
   address: string;
   sourceUrl: string;
   placeType: "whole" | "private" | "shared" | "";
-  priceTier: number | null;
   createNew?: boolean;
 }) {
   const supabase = await createClient();
@@ -36,12 +35,12 @@ export async function identifySubject(input: {
 
   const name = input.name.trim();
   const address = input.address.trim();
-  const sourceUrl = listingUrl(input.sourceUrl);
+  const sourceUrl = input.kind === "stay" ? listingUrl(input.sourceUrl) : null;
   const nameKey = normalizeAddress(name);
   const addressKey = normalizeAddress(address);
-  if (!name || !address || !sourceUrl || !nameKey || !addressKey) return { error: "Enter a name, street address, and valid listing URL." };
-  if (!["whole", "private", "shared"].includes(input.placeType) || (input.kind === "lease" && input.placeType === "shared")) return { error: "Choose a valid place type for this category." };
-  if (input.priceTier === null || !Number.isInteger(input.priceTier) || input.priceTier < 1 || input.priceTier > 4) return { error: "Choose a price tier from 1 to 4." };
+  if (!name || !address || !nameKey || !addressKey) return { error: "Enter a name and street address." };
+  if (input.kind === "stay" && !sourceUrl) return { error: "Enter a valid listing URL for this stay." };
+  if (input.kind === "stay" && input.placeType && !["whole", "private", "shared"].includes(input.placeType)) return { error: "Choose a valid place type." };
 
   const { data: exact, error: exactError } = await supabase.from("subjects").select("*")
     .eq("kind", input.kind).eq("name_key", nameKey).eq("address_key", addressKey).limit(5);
@@ -59,8 +58,8 @@ export async function identifySubject(input: {
     display_name: name,
     source_url: sourceUrl,
     address,
-    place_type: input.placeType || null,
-    price_tier: input.priceTier,
+    place_type: input.kind === "stay" ? input.placeType || null : null,
+    price_tier: null,
     created_by: user.id,
   }).select("*").single();
   if (error) {
@@ -146,6 +145,9 @@ export async function saveReview(input: {
   visitDate: string;
   stayStart: string;
   stayEnd: string;
+  stayNights: number | null;
+  nightlyCost: number | null;
+  monthlyCost: number | null;
   leaseMonths: number | null;
   selectedTags: (SelectedTag | { label: string; note: string })[];
   kind: SubjectKind;
@@ -155,7 +157,10 @@ export async function saveReview(input: {
   if (!user) return { error: "Sign in to publish your review." };
   if (!Number.isInteger(input.rating) || input.rating < 0 || input.rating > 5) return { error: "Choose a rating from 0 to 5." };
   if (input.rating === 0 && input.body.trim().length < 10) return { error: "A zero-star review needs at least 10 characters." };
-  if (input.kind === "lease" && (!Number.isInteger(input.leaseMonths) || input.leaseMonths! < 1 || input.leaseMonths! > 120)) return { error: "Enter a lease length from 1 to 120 months." };
+  if (input.kind === "lease" && input.leaseMonths !== null && (!Number.isInteger(input.leaseMonths) || input.leaseMonths < 1 || input.leaseMonths > 120)) return { error: "Enter a lease length from 1 to 120 months." };
+  if (input.kind === "stay" && input.stayNights !== null && (!Number.isInteger(input.stayNights) || input.stayNights < 1)) return { error: "Enter a stay length of at least one night." };
+  if (input.kind === "stay" && input.nightlyCost !== null && (!Number.isFinite(input.nightlyCost) || input.nightlyCost < 0)) return { error: "Enter a valid nightly amount of zero or more." };
+  if (input.kind === "lease" && input.monthlyCost !== null && (!Number.isFinite(input.monthlyCost) || input.monthlyCost < 0)) return { error: "Enter a valid monthly amount of zero or more." };
 
   const resolvedTags: SelectedTag[] = [];
   for (const tag of input.selectedTags) {
@@ -178,6 +183,9 @@ export async function saveReview(input: {
     stay_start: input.stayStart || null,
     stay_end: input.stayEnd || null,
     lease_months: input.kind === "lease" ? input.leaseMonths : null,
+    stay_nights: input.kind === "stay" ? input.stayNights : null,
+    nightly_cost: input.kind === "stay" ? input.nightlyCost : null,
+    monthly_cost: input.kind === "lease" ? input.monthlyCost : null,
     status: "published" as const,
     updated_at: new Date().toISOString(),
   };

@@ -4,7 +4,7 @@ import StarRating from "@/components/StarRating";
 import { createClient } from "@/lib/supabase/server";
 import type { Subject, SubjectKind, SubjectStats } from "@/lib/types";
 
-type Params = Promise<{ category?: string; kind?: string; place_type?: string; price_tier?: string; zeros?: string; term?: string; q?: string }>;
+type Params = Promise<{ category?: string; kind?: string; place_type?: string; zeros?: string; term?: string; q?: string }>;
 const categoryKinds: Record<string, SubjectKind> = { stays: "stay", hotels: "hotel", leases: "lease" };
 
 export default async function Browse({ searchParams }: { searchParams: Params }) {
@@ -15,8 +15,7 @@ export default async function Browse({ searchParams }: { searchParams: Params })
   const supabase = await createClient();
   const createSubjectsQuery = () => {
     let query = supabase.from("subjects").select("*").eq("kind", kind).order("display_name");
-    if ((kind === "stay" || kind === "lease") && params.place_type) query = query.eq("place_type", params.place_type);
-    if (params.price_tier) query = query.eq("price_tier", Number(params.price_tier));
+    if (kind === "stay" && params.place_type) query = query.eq("place_type", params.place_type);
     return query;
   };
   let subjects: Subject[] | null;
@@ -53,8 +52,7 @@ export default async function Browse({ searchParams }: { searchParams: Params })
     <div className="mt-7"><CategoryTabs active={kind} /></div>
     <form className="flex flex-wrap items-end gap-3 border-b border-[var(--line)] py-5"><input type="hidden" name="category" value={kind === "stay" ? "stays" : kind === "hotel" ? "hotels" : "leases"} />
       <label className="grid w-full max-w-sm gap-1 text-xs text-[var(--muted)]">Search by name or city<input type="search" name="q" defaultValue={params.q ?? ""} placeholder="Name or city" className="field py-2" /></label>
-      {(kind === "stay" || kind === "lease") && <label className="grid gap-1 text-xs text-[var(--muted)]">Place type<select name="place_type" defaultValue={params.place_type ?? ""} className="field min-w-36 py-2"><option value="">Any</option><option value="whole">Entire place</option><option value="private">Private room</option>{kind !== "lease" && <option value="shared">Shared room</option>}</select></label>}
-      <label className="grid gap-1 text-xs text-[var(--muted)]">Price tier<select name="price_tier" defaultValue={params.price_tier ?? ""} className="field min-w-32 py-2"><option value="">Any</option>{[1, 2, 3, 4].map((tier) => <option key={tier} value={tier}>{"$".repeat(tier)}</option>)}</select></label>
+      {kind === "stay" && <label className="grid gap-1 text-xs text-[var(--muted)]">Place type<select name="place_type" defaultValue={params.place_type ?? ""} className="field min-w-36 py-2"><option value="">Any</option><option value="whole">Entire place</option><option value="private">Private room</option><option value="shared">Shared room</option></select></label>}
       {kind === "lease" && <fieldset className="grid gap-1 text-xs text-[var(--muted)]"><legend>Lease length</legend><div className="flex gap-2"><label className="flex min-h-11 items-center gap-2"><input type="radio" name="term" value="short" defaultChecked={term === "short"} />Short-term (under a year)</label><label className="flex min-h-11 items-center gap-2"><input type="radio" name="term" value="long" defaultChecked={term === "long"} />Long-term (a year or more)</label></div></fieldset>}
       <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name="zeros" value="true" defaultChecked={params.zeros === "true"} />Has zero-star reviews</label><button className="button button-secondary">{searchTerm ? "Search & apply filters" : "Apply filters"}</button>
     </form>

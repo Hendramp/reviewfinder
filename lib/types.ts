@@ -20,7 +20,7 @@ export interface Subject extends Record<string, unknown> {
   name_key: string;
   address_key: string;
   display_name: string;
-  source_url: string;
+  source_url: string | null;
   host_name: string | null;
   host_username: string | null;
   address: string | null;
@@ -55,6 +55,9 @@ export interface Review extends Record<string, unknown> {
   visit_date: string | null;
   stay_start: string | null;
   stay_end: string | null;
+  stay_nights: number | null;
+  nightly_cost: number | null;
+  monthly_cost: number | null;
   lease_months: number | null;
   verified_stay: boolean | null;
   status: ReviewStatus;
