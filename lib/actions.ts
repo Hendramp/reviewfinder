@@ -106,10 +106,10 @@ export async function saveReview(input: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Sign in to publish your review." };
   if (!Number.isInteger(input.rating) || input.rating < 0 || input.rating > 5) return { error: "Choose a rating from 0 to 5." };
-  if (input.rating === 0 && input.body.trim().length < 10) return { error: "A zero-star review needs at least 10 characters." };
+  if (input.kind !== "stay" && input.rating === 0 && input.body.trim().length < 10) return { error: "A zero-star review needs at least 10 characters." };
   if (input.kind === "lease" && input.leaseMonths !== null && (!Number.isInteger(input.leaseMonths) || input.leaseMonths < 1 || input.leaseMonths > 120)) return { error: "Enter a lease length from 1 to 120 months." };
-  if (input.kind === "stay" && input.stayNights !== null && (!Number.isInteger(input.stayNights) || input.stayNights < 1)) return { error: "Enter a stay length of at least one night." };
-  if (input.kind === "stay" && input.nightlyCost !== null && (!Number.isFinite(input.nightlyCost) || input.nightlyCost < 0)) return { error: "Enter a valid nightly amount of zero or more." };
+  if (input.kind === "hotel" && input.stayNights !== null && (!Number.isInteger(input.stayNights) || input.stayNights < 1)) return { error: "Enter a stay length of at least one night." };
+  if (input.kind === "hotel" && input.nightlyCost !== null && (!Number.isFinite(input.nightlyCost) || input.nightlyCost < 0)) return { error: "Enter a valid nightly amount of zero or more." };
   if (input.kind === "lease" && input.monthlyCost !== null && (!Number.isFinite(input.monthlyCost) || input.monthlyCost < 0)) return { error: "Enter a valid monthly amount of zero or more." };
 
   const values = {
@@ -120,10 +120,11 @@ export async function saveReview(input: {
     visit_date: input.visitDate || null,
     stay_start: input.stayStart || null,
     stay_end: input.stayEnd || null,
-    lease_months: input.kind === "lease" ? input.leaseMonths : null,
-    stay_nights: input.kind === "stay" ? input.stayNights : null,
-    nightly_cost: input.kind === "stay" ? input.nightlyCost : null,
-    monthly_cost: input.kind === "lease" ? input.monthlyCost : null,
+    ...(input.kind === "lease"
+      ? { monthly_cost: input.monthlyCost, lease_months: input.leaseMonths }
+      : input.kind === "hotel"
+        ? { nightly_cost: input.nightlyCost, stay_nights: input.stayNights }
+        : {}),
     status: "published" as const,
     updated_at: new Date().toISOString(),
   };

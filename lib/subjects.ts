@@ -1,6 +1,6 @@
 "use server";
 
-import { canonicalKey, distinctiveTokens, listingUrl, nameSimilarity } from "@/lib/normalize";
+import { canonicalKey, distinctiveTokens, listingPlatform, listingUrl, nameSimilarity } from "@/lib/normalize";
 import { createClient } from "@/lib/supabase/server";
 import type { SubjectKind } from "@/lib/types";
 
@@ -41,13 +41,16 @@ export async function upsertSubject(input: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Sign in before publishing your review." };
   const sourceUrl = listingUrl(input.sourceUrl);
+  if (input.kind === "stay" && !sourceUrl) return { error: "Could not save the place: enter a valid listing URL." };
   if (input.sourceUrl.trim() && !sourceUrl) return { error: "Could not save the place: enter a valid listing URL." };
+  const name = input.name.trim() || (input.kind === "stay" && sourceUrl ? `${listingPlatform(sourceUrl)} stay` : "");
+  const keyName = input.name.trim() || sourceUrl || name;
 
   const { data, error } = await supabase.rpc("upsert_subject", {
     p_kind: input.kind,
-    p_name: input.name.trim(),
+    p_name: name,
     p_address: input.address.trim(),
-    p_key: canonicalKey(input.name, input.address),
+    p_key: canonicalKey(keyName, input.address),
     p_source_url: sourceUrl,
     p_phone: input.phone.trim() || null,
   });
