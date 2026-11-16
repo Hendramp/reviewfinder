@@ -21,6 +21,7 @@ export interface Subject extends Record<string, unknown> {
   address_key: string | null;
   display_name: string;
   source_url: string | null;
+  phone: string | null;
   host_name: string | null;
   host_username: string | null;
   address: string | null;
@@ -134,6 +135,7 @@ export interface Database {
     Functions: {
       email_for_login: { Args: { login: string }; Returns: string | null };
       is_admin: { Args: Record<string, never>; Returns: boolean };
+      upsert_subject: { Args: { p_kind: string; p_name: string; p_address: string; p_key: string; p_source_url: string | null; p_phone: string | null }; Returns: string };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

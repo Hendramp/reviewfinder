@@ -1,3 +1,34 @@
+const stopwords = new Set(["the", "hotel", "motel", "inn", "suites", "resort", "llc", "inc", "and", "of", "at", "by", "a"]);
+
+export function distinctiveTokens(name: string): string[] {
+  return [...new Set(name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .split(/\s+/)
+    .filter((token) => token && !stopwords.has(token)))];
+}
+
+export function nameSimilarity(a: string, b: string): number {
+  const first = new Set(distinctiveTokens(a));
+  const second = new Set(distinctiveTokens(b));
+  const union = new Set([...first, ...second]);
+  if (!union.size) return 0;
+  const intersectionSize = [...first].filter((token) => second.has(token)).length;
+  return intersectionSize / union.size;
+}
+
+export function normalized(input: string): string {
+  return distinctiveTokens(input).join(" ");
+}
+
+export function canonicalKey(name: string, address: string): string {
+  const stripPhone = (value: string) => value.replace(/\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/g, " ");
+  return `${normalized(stripPhone(name))}|${normalized(stripPhone(address))}`;
+}
+
 export function normalizeAddress(input: string): string {
   return input
     .toLowerCase()

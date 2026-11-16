@@ -11,9 +11,11 @@
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.4",
+    "libphonenumber-js": "^1.13.16",
     "next": "^15.2.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-phone-number-input": "^3.4.18"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.14",
