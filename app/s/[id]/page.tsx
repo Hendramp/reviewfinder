@@ -43,12 +43,15 @@ export default async function SubjectPage({ params }: { params: Promise<{ id: st
       <div className="self-center"><DistributionBar stats={ratingStats} /></div>
       {ratingStats.zeros > 0 && <p className="sm:col-span-2 text-sm font-medium text-[var(--danger)]">{ratingStats.zeros} of {ratingStats.review_count} {visitor} rated this {subject.kind === "lease" ? "lease" : "stay"} zero stars.</p>}
     </section>
-    {tagTallies.length > 0 && <section className="border-b border-[var(--line)] py-6"><p className="eyebrow mb-3">What people mention</p><div className="flex flex-wrap gap-2">{tagTallies.map(({ tag, count }) => <TagChip key={tag.id} label={tag.label} selected={false} count={count} />)}</div></section>}
+    {tagTallies.length > 0 && <section className="border-b border-[var(--line)] py-6"><p className="eyebrow mb-3">What people mention</p><div className="flex min-w-0 flex-wrap gap-2">{tagTallies.map(({ tag, count }) => <TagChip key={tag.id} label={tag.label} selected={false} sentiment={tag.sentiment} count={count} />)}</div></section>}
     <section className="pt-7"><div className="mb-1 flex items-baseline justify-between"><h2 className="serif text-2xl">Reviews</h2><span className="text-xs text-[var(--muted)]">{reviewList.length}</span></div>
       {reviewList.length ? reviewList.map((review) => {
         const associationsForReview = tagsByReview.get(review.id) ?? [];
-        const namedTags = associationsForReview.map((association) => tagMap.get(association.tag_id)).filter((tag): tag is Tag => Boolean(tag));
-        return <ReviewCard key={review.id} review={review} photos={(mediaByReview.get(review.id) ?? []).slice(0, 8)} tags={namedTags.map((tag) => tag.label)} tagNotes={associationsForReview.flatMap((association) => { const tag = tagMap.get(association.tag_id); return tag && association.note ? [{ label: tag.label, note: association.note }] : []; })} />;
+        const namedTags = associationsForReview.flatMap((association) => {
+          const tag = tagMap.get(association.tag_id);
+          return tag ? [{ label: tag.label, sentiment: tag.sentiment, note: association.note }] : [];
+        });
+        return <ReviewCard key={review.id} review={review} photos={(mediaByReview.get(review.id) ?? []).slice(0, 8)} tags={namedTags} />;
       }) : <div className="empty-state mt-5"><p className="eyebrow">First impressions start somewhere</p><p className="serif mt-1 text-2xl">No one has written about {subject.display_name} yet.</p><p className="mt-2 text-sm text-[var(--muted)]">You could be the person who helps someone choose it with confidence.</p><Link className="button mt-4" href={`/write?subject=${subject.id}`}>Write the first review</Link></div>}
     </section>
   </div>;

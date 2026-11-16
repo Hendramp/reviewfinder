@@ -71,6 +71,7 @@ export interface Tag extends Record<string, unknown> {
   kind: SubjectKind;
   label: string;
   slug: string;
+  sentiment: "positive" | "negative" | "neutral";
 }
 
 export interface ReviewTag extends Record<string, unknown> {
